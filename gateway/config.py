@@ -23,5 +23,9 @@ THRESHOLDS = {
 
 # Early warning: warn if the trend predicts a threshold within this many minutes.
 EARLY_WARNING_MINUTES = 60.0
-# Number of most recent valid readings used for the trend.
-TREND_WINDOW = 36
+# Trend is fitted over the last TREND_MINUTES of environment time, but on at least
+# TREND_MIN_POINTS readings (with accelerated simulation 30 minutes can be only 3 readings).
+TREND_MINUTES = 30.0
+TREND_MIN_POINTS = 6
+# No trend until the data covers this much environment time (short windows are dominated by noise).
+TREND_MIN_SPAN_MINUTES = 10.0

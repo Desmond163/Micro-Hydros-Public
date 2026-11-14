@@ -14,11 +14,11 @@ import argparse
 import sys
 from collections import deque
 
-from gateway.config import CHANNELS, EARLY_WARNING_MINUTES, THRESHOLDS, TREND_WINDOW
+from gateway.config import CHANNELS, EARLY_WARNING_MINUTES, THRESHOLDS, TREND_MIN_POINTS, TREND_MIN_SPAN_MINUTES, TREND_MINUTES
 from gateway.schema import PayloadError, parse_measurement
 from gateway.sequence import SequenceTracker
 from gateway.storage import Store
-from gateway.trend import analyse
+from gateway.trend import analyse, recent_window
 
 SHORT = {"air_inside_c": "in", "air_outside_c": "out", "water_c": "water", "humidity_inside_pct": "rh"}
 
@@ -74,13 +74,13 @@ class Receiver:
             if value is None or limits is None:
                 continue
             key = (m.device, channel)
-            window = self.history.setdefault(key, deque(maxlen=TREND_WINDOW))
-            if window and minutes < window[-1][0]:
-                window.clear()  # device restarted, uptime reset
-            window.append((minutes, value))
-            if len(window) < TREND_WINDOW:
+            history = self.history.setdefault(key, deque(maxlen=2000))
+            if history and minutes < history[-1][0]:
+                history.clear()  # device restarted, uptime reset
+            history.append((minutes, value))
+            if len(history) < TREND_MIN_POINTS or history[-1][0] - history[0][0] < TREND_MIN_SPAN_MINUTES:
                 continue
-            trend = analyse(list(window), limits)
+            trend = analyse(recent_window(list(history), TREND_MINUTES, TREND_MIN_POINTS), limits)
             low, high = limits
             already_outside = not (low <= value <= high)
             heading_out = (

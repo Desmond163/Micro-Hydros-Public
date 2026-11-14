@@ -7,7 +7,7 @@ from gateway.receiver import Receiver
 from gateway.schema import PayloadError, parse_measurement
 from gateway.sequence import SequenceTracker
 from gateway.storage import Store
-from gateway.trend import analyse, slope
+from gateway.trend import analyse, recent_window, slope
 
 VALID = {
     "schema": 1, "device": "mh-test", "seq": 0, "uptime_ms": 0,
@@ -123,4 +123,20 @@ def test_daily_cycle_at_120x_does_not_raise_early_warning():
         sim_min = i * 10
         value = 23.5 + 2.5 * math.sin(2 * math.pi * sim_min / 1440)
         r.handle(payload(seq=i, uptime_ms=i * 5000, time_scale=120, air_inside_c=round(value, 2)))
+    assert r.stats["warnings"] == 0
+
+
+def test_recent_window_uses_time_but_keeps_min_points():
+    points = [(float(i * 10), float(i)) for i in range(20)]  # one point per 10 minutes
+    assert len(recent_window(points, 30.0, 6)) == 6
+    dense = [(i / 12.0, 1.0) for i in range(1000)]  # one point per 5 s
+    assert len(recent_window(dense, 30.0, 6)) == 361
+
+
+def test_no_trend_warning_from_first_noisy_seconds():
+    store = Store(":memory:")
+    r = Receiver(store, out=io.StringIO())
+    noise = [0.0, 0.3, -0.2, 0.4, -0.1, 0.5, 0.6, 0.7]
+    for i, n in enumerate(noise):  # 40 s of data with a steep apparent slope
+        r.handle(payload(seq=i, uptime_ms=i * 5000, air_inside_c=26.0 + n))
     assert r.stats["warnings"] == 0

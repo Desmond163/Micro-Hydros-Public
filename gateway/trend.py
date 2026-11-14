@@ -27,6 +27,17 @@ def slope(points: list[tuple[float, float]]) -> float | None:
     return sxy / sxx
 
 
+def recent_window(points_min: list[tuple[float, float]], minutes: float, min_points: int):
+    """Points from the last `minutes`, extended backwards to at least `min_points`."""
+    if not points_min:
+        return []
+    start = points_min[-1][0] - minutes
+    window = [p for p in points_min if p[0] >= start]
+    if len(window) < min_points:
+        window = points_min[-min_points:]
+    return window
+
+
 def analyse(points_min: list[tuple[float, float]], limits: tuple[float, float] | None) -> Trend | None:
     """points_min: (minutes, value) pairs in time order."""
     s = slope(points_min)

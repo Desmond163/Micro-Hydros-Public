@@ -14,9 +14,9 @@ from collections import Counter
 from pathlib import Path
 from statistics import mean
 
-from gateway.config import CHANNELS, THRESHOLDS, TREND_WINDOW
+from gateway.config import CHANNELS, THRESHOLDS, TREND_MIN_POINTS, TREND_MIN_SPAN_MINUTES, TREND_MINUTES
 from gateway.storage import Store
-from gateway.trend import analyse
+from gateway.trend import analyse, recent_window
 
 SV_LABELS = {
     "air_inside_c": "Luft inne (°C)",
@@ -30,7 +30,9 @@ def channel_stats(rows, channel):
     values = [r[channel] for r in rows if r[channel] is not None]
     points = [(r["uptime_ms"] / 60000.0 * r["time_scale"], r[channel]) for r in rows
               if r[channel] is not None and r["uptime_ms"] is not None]
-    trend = analyse(points[-TREND_WINDOW:], THRESHOLDS[channel]) if len(points) >= 3 else None
+    trend = (analyse(recent_window(points, TREND_MINUTES, TREND_MIN_POINTS), THRESHOLDS[channel])
+             if len(points) >= TREND_MIN_POINTS and points[-1][0] - points[0][0] >= TREND_MIN_SPAN_MINUTES
+             else None)
     return {
         "count": len(values),
         "missing": len(rows) - len(values),
