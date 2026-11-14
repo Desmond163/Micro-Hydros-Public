@@ -1,22 +1,53 @@
-#include <Arduino.h>
-
 #include "sensor_manager.h"
 
+#include <limits>
+
+#include "alarm.h"
+#include "validator.h"
+
+SensorManager::SensorManager(hal::ITemperatureSensor& airInside,
+                             hal::ITemperatureSensor& airOutside, hal::ITemperatureSensor& water,
+                             hal::IHumiditySensor& humidityInside)
+    : airInside_(airInside),
+      airOutside_(airOutside),
+      water_(water),
+      humidityInside_(humidityInside) {}
+
 bool SensorManager::begin() {
-    return true;
+    // Initialise every sensor even if one fails, so the remaining channels still work.
+    bool ok = airInside_.begin();
+    ok = airOutside_.begin() && ok;
+    ok = water_.begin() && ok;
+    ok = humidityInside_.begin() && ok;
+    return ok;
 }
 
-MeasurementData SensorManager::read(std::uint32_t timestampMs) const {
-    MeasurementData measurement{};
-    measurement.timestampMs = timestampMs;
+MeasurementData SensorManager::read(std::uint32_t timestampMs) {
+    constexpr float kMissing = std::numeric_limits<float>::quiet_NaN();
 
-#if USE_SIMULATED_SENSORS
-    const float phase = static_cast<float>((timestampMs / 1000U) % 20U);
-    measurement.airInsideC = 22.0f + phase * 0.05f;
-    measurement.airOutsideC = 18.0f + phase * 0.03f;
-    measurement.waterC = 20.0f + phase * 0.02f;
-    measurement.humidityInsidePct = 56.0f + phase * 0.1f;
-#endif
+    MeasurementData m{};
+    m.sequence = nextSequence_++;
+    m.timestampMs = timestampMs;
 
-    return measurement;
+    if (!airInside_.readCelsius(m.airInsideC)) {
+        m.airInsideC = kMissing;
+        m.readFailures |= kAirInside;
+    }
+    if (!airOutside_.readCelsius(m.airOutsideC)) {
+        m.airOutsideC = kMissing;
+        m.readFailures |= kAirOutside;
+    }
+    if (!water_.readCelsius(m.waterC)) {
+        m.waterC = kMissing;
+        m.readFailures |= kWater;
+    }
+    if (!humidityInside_.readRelativeHumidity(m.humidityInsidePct)) {
+        m.humidityInsidePct = kMissing;
+        m.readFailures |= kHumidityInside;
+    }
+
+    m.implausible = Validator::implausibleMask(m) & static_cast<std::uint8_t>(~m.readFailures);
+    m.alarms = AlarmEvaluator::evaluate(m);
+    m.valid = (m.readFailures | m.implausible) == 0;
+    return m;
 }
