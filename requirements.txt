@@ -1,1 +1,5 @@
+# Gateway (receiver + analysis) and the legacy host demo
 paho-mqtt>=2.0,<3.0
+matplotlib>=3.7
+# Development
+pytest>=8.0
