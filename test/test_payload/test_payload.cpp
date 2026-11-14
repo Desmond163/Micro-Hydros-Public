@@ -24,7 +24,7 @@ void test_valid_measurement_json() {
     const std::size_t n = payload::toJson(sample(), "mh-01", buf, sizeof(buf));
     TEST_ASSERT_TRUE(n > 0);
     TEST_ASSERT_EQUAL_STRING(
-        "{\"schema\":1,\"device\":\"mh-01\",\"seq\":42,\"uptime_ms\":210000,"
+        "{\"schema\":1,\"device\":\"mh-01\",\"seq\":42,\"uptime_ms\":210000,\"time_scale\":1,"
         "\"air_inside_c\":23.41,\"air_outside_c\":21.00,\"water_c\":20.55,"
         "\"humidity_inside_pct\":61.80,\"valid\":true,\"faults\":[],\"alarms\":[]}",
         buf);
@@ -54,7 +54,7 @@ void test_worst_case_fits_max_size() {
     m.alarms = 0x3F;
     m.readFailures = kAllChannels;
     char buf[payload::kMaxPayloadSize];
-    TEST_ASSERT_TRUE(payload::toJson(m, "mh-0123456789abcdef", buf, sizeof(buf)) > 0);
+    TEST_ASSERT_TRUE(payload::toJson(m, "mh-0123456789abcdef", buf, sizeof(buf), 4294967295ul) > 0);
 }
 
 void test_too_small_buffer_returns_zero() {

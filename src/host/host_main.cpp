@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
         humidity.channel().setOffset(-1.5f * heatOffset);
 
         const MeasurementData m = manager.read(clock.nowMs());
-        if (payload::toJson(m, o.deviceId, buffer, sizeof(buffer)) > 0) {
+        if (payload::toJson(m, o.deviceId, buffer, sizeof(buffer), static_cast<unsigned long>(o.timeScale)) > 0) {
             std::puts(buffer);
             std::fflush(stdout);
         }

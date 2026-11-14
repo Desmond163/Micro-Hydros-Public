@@ -76,14 +76,15 @@ void appendNameList(Writer& w, const char* key, std::uint8_t mask, const NamedBi
 
 }  // namespace
 
-std::size_t toJson(const MeasurementData& m, const char* deviceId, char* out, std::size_t size) {
+std::size_t toJson(const MeasurementData& m, const char* deviceId, char* out, std::size_t size,
+                   unsigned long timeScale) {
     if (out == nullptr || size == 0) return 0;
 
     const std::uint8_t faulty = m.readFailures | m.implausible;
     Writer w(out, size);
-    w.append("{\"schema\":%d,\"device\":\"%s\",\"seq\":%lu,\"uptime_ms\":%lu", kSchemaVersion,
-             deviceId, static_cast<unsigned long>(m.sequence),
-             static_cast<unsigned long>(m.timestampMs));
+    w.append("{\"schema\":%d,\"device\":\"%s\",\"seq\":%lu,\"uptime_ms\":%lu,\"time_scale\":%lu",
+             kSchemaVersion, deviceId, static_cast<unsigned long>(m.sequence),
+             static_cast<unsigned long>(m.timestampMs), timeScale);
     appendValue(w, "air_inside_c", m.airInsideC, faulty & kAirInside);
     appendValue(w, "air_outside_c", m.airOutsideC, faulty & kAirOutside);
     appendValue(w, "water_c", m.waterC, faulty & kWater);

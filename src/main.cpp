@@ -142,7 +142,13 @@ void loop() {
     const MeasurementData measurement = sensorManager.read(now);
     digitalWrite(kAlarmLedPin, (measurement.alarms != 0 || !measurement.valid) ? HIGH : LOW);
 
-    if (payload::toJson(measurement, config::kDeviceId, payloadBuffer, sizeof(payloadBuffer)) > 0) {
+    #if USE_REAL_SENSORS
+    constexpr unsigned long kTimeScale = 1;
+#else
+    constexpr unsigned long kTimeScale = config::kSimTimeScale;
+#endif
+    if (payload::toJson(measurement, config::kDeviceId, payloadBuffer, sizeof(payloadBuffer),
+                        kTimeScale) > 0) {
         communication.send(payloadBuffer);
     } else {
         Serial.println("ERROR: payload did not fit in buffer");
