@@ -1,5 +1,8 @@
 # Project Plan
 
+> **Superseded** by [projektplan.md](projektplan.md) (v2, 14 Nov 2026, Swedish). Kept for history: this was
+> the plan in the 23 Oct 2026 upload.
+
 ## Purpose and scope
 
 Demonstrate a small, maintainable IoT measurement pipeline for the MicroHydros hydroponic environment. The prototype covers four repeated measurements, data representation, plausibility validation, JSON output, and a communication path. The ESP32 firmware defaults to simulated inputs and Serial output; MQTT is optional. Physical drivers, cloud storage, alerts, controls, and a user interface are out of scope.

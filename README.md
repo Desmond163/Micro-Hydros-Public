@@ -1,72 +1,130 @@
 # MicroHydros Prototype
 
-A small IoT prototype for collecting four environmental measurements for the HydroGreen Fingers MicroHydros concept. It provides ESP32/PlatformIO firmware with simulated sensors and a no-hardware Python demo.
+IoT/embedded prototype for HydroGreen Fingers AB's MicroHydros concept (Projekt 1, IoT25, JENSEN YH).
+An ESP32 reads four environmental values, validates them, raises alarms and publishes JSON over MQTT
+to a gateway that stores history and warns when a value is heading towards a limit.
 
-## What it demonstrates
+| Measurement | JSON field | Planned physical sensor |
+|---|---|---|
+| Air temperature inside | `air_inside_c` | Sensirion SHT40 |
+| Air temperature outside | `air_outside_c` | DS18B20 |
+| Water / nutrient temperature | `water_c` | DS18B20 in sealed probe |
+| Relative humidity inside | `humidity_inside_pct` | Sensirion SHT40 |
 
-- Repeated inside/outside air temperature, nutrient-water temperature, and inside relative-humidity readings.
-- A shared measurement record, range and finite-value validation, and JSON output.
-- ESP32 serial output, with optional Wi-Fi/MQTT publishing.
-- Host simulation for a demonstration without an ESP32 or sensors.
-- Native C++ validator tests.
+**Sensors are simulated.** The team has no hardware budget, so values come from simulated sensors behind
+a Hardware Abstraction Layer (HAL); see [docs/03-architecture.md](docs/03-architecture.md). Drivers for
+SHT40 and DS18B20 implement the same HAL and compile (`esp32dev_real`) but have **not** been tested on
+hardware. DHT11/DHT22 are not used (customer requirement).
 
-All firmware readings are simulated; physical sensor drivers are not integrated. DHT11 and DHT22 are not used. Do not claim physical sensor or broker results unless you perform and document those tests.
-
-## Run the no-hardware demo
-
-Requires Python 3.9 or newer:
-
-```powershell
-py -3 tools/demo.py --count 5 --interval 1
+```
+Simulated sensors ─┐
+                   ├─ HAL ─ SensorManager ─ Validator + Alarms ─ JSON ─┬─ Serial
+SHT40 / DS18B20 ───┘        (ESP32 firmware, C++)                       └─ Wi-Fi/MQTT ─ broker ─ gateway ─ SQLite ─ analysis
 ```
 
-Every output line is a JSON measurement. Add `--invalid-every 3` to demonstrate invalid-reading handling. To publish to MQTT, install the optional dependency and provide a broker:
+## Repository layout
 
-```powershell
-py -3 -m pip install -r requirements.txt
-py -3 tools/demo.py --count 5 --interval 1 --mqtt-host localhost
+| Path | Content |
+|---|---|
+| `include/hal/`, `src/hal/` | HAL interfaces, simulated sensors, SHT40/DS18B20 drivers |
+| `src/sensor_manager.cpp`, `validator.cpp`, `alarm.cpp`, `payload.cpp` | Hardware-independent firmware core |
+| `src/main.cpp`, `src/communication.cpp` | ESP32 application: schedule, LEDs, buttons, Wi-Fi/MQTT |
+| `src/host/host_main.cpp` | Same core compiled for the PC (testing without an ESP32) |
+| `test/` | Native Unity tests of the core |
+| `gateway/` | Python receiver (MQTT/stdin → SQLite), trend warnings, analysis report and graph |
+| `diagram.json`, `wokwi.toml` | Wokwi simulation of the ESP32 with LEDs and buttons |
+| `docs/` | Project plan, requirements, architecture, sensors, tests, sprint log, handover |
+| `tools/demo.py` | Original Python-only demo (kept for reference; the firmware is the main path) |
+
+## Dependencies
+
+- [PlatformIO](https://platformio.org/) (VS Code extension or `pip install platformio`)
+- Python 3.10+ and `pip install -r requirements.txt` (paho-mqtt, matplotlib, pytest)
+- For the simulator: VS Code extension **Wokwi Simulator** (requires a free Wokwi account/licence)
+- Optional: an MQTT client such as MQTT Explorer or `mosquitto_sub`
+
+## Quick start
+
+### 1. Run the tests (no hardware)
+
+```bash
+pio test -e native            # 25 firmware unit tests
+python -m pytest gateway      # 17 gateway tests
 ```
 
-In another terminal, subscribe with an MQTT client such as:
+### 2. Run the ESP32 in Wokwi and receive data on your PC
 
-```powershell
-mosquitto_sub -h localhost -t microhydros/measurement -v
+```bash
+pio run -e wokwi                                                    # build firmware for the simulator
+# VS Code: F1 -> "Wokwi: Start Simulator" (uses diagram.json + wokwi.toml)
+python -m gateway.receiver --mqtt-host broker.hivemq.com --device mh-grupp6
 ```
 
-The Python publisher uses MQTT without TLS or authentication by default. Use only a trusted local broker for the demo; configure security before deployment.
+In the simulator: the green LED lights when MQTT is connected, the red LED on alarm or sensor fault.
+**Heat event** (orange button) ramps the inside temperature up so the trend warning and alarm can be
+demonstrated; **Sensor fault** (blue button) injects read errors and NaN values. Time is accelerated
+120x in this build (one simulated day = 12 minutes).
 
-## Build the ESP32 firmware
+> The Wokwi build uses the public broker `broker.hivemq.com` without TLS or login. Anyone can read the
+> topic. This is acceptable only because the data is simulated and harmless; see the security section in
+> [docs/03-architecture.md](docs/03-architecture.md).
 
-Install Visual Studio Code and PlatformIO, connect an ESP32 DevKit, then run:
+### 3. Analyse the stored history
 
-```powershell
-pio run -e esp32dev
-pio run -e esp32dev -t upload
-pio device monitor -b 115200
+```bash
+python -m gateway.analyze --db data/microhydros.db --out reports
 ```
 
-The default firmware emits simulated JSON over serial every five seconds. Run native tests with:
+Produces `reports/<device>_rapport.md` (statistics, faults, alarms, trend, insights; in Swedish for the
+customer) and `reports/<device>_graf.png`.
 
-```powershell
-pio test -e native
+### 4. Without Wokwi: same firmware core on the PC
+
+```bash
+pio run -e native_sim
+.pio/build/native_sim/program --count 400 --time-scale 120 --fault-at 100 --heat-at 300 \
+  | python -m gateway.receiver --stdin --db data/host.db
 ```
 
-## Enable ESP32 MQTT
+This runs the same C++ core (HAL, SensorManager, validation, alarms, JSON) as the ESP32. It exists for
+testing; the embedded deliverable is the ESP32 firmware.
 
-1. Copy `include/secrets.example.h` to `include/secrets.h` and enter local Wi-Fi and broker settings.
-2. Add `-DENABLE_MQTT` to the `esp32dev` environment's `build_flags` in `platformio.ini`.
-3. Build/upload and verify `microhydros/measurement` with a subscriber.
+### 5. Physical ESP32
 
-`include/secrets.h` is ignored by Git. Never commit real credentials. Shared public brokers are not suitable for sensitive data.
+```bash
+pio run -e esp32dev -t upload && pio device monitor -b 115200     # simulated sensors, JSON on Serial
+```
 
-## Project material
+For MQTT on a real board: copy `include/secrets.example.h` to `include/secrets.h` (ignored by Git),
+fill in Wi-Fi and broker, and add `-D ENABLE_MQTT` to `build_flags`. With real sensors:
+`pio run -e esp32dev_real` (SHT40 on I2C SDA 21/SCL 22, DS18B20 bus on GPIO 4 with 4.7 kΩ pull-up).
 
-- [Project plan and schedule](docs/01-project-plan.md)
-- [Requirements and backlog](docs/02-requirements-backlog.md)
-- [Architecture](docs/03-architecture.md)
-- [Sensor decisions](docs/04-sensor-decisions.md)
-- [Test plan and results](docs/05-test-report.md)
+## Data format (schema 1)
 
-## Status
+```json
+{"schema":1,"device":"mh-grupp6","seq":42,"uptime_ms":210000,"time_scale":120,
+ "air_inside_c":23.41,"air_outside_c":21.02,"water_c":null,"humidity_inside_pct":61.80,
+ "valid":false,"faults":["water"],"alarms":[]}
+```
 
-This package was assembled on 23 October 2026, after the assignment's stated 31 August–25 September 2026 project period. The date is recorded rather than backdated. Run the demo and tests before submission and update the report with actual results, hardware, broker, and contributors.
+`seq` lets the receiver detect lost messages; faulty channels are `null`; `time_scale` is 1 on real
+hardware. Topics: `microhydros/<device>/measurement` and `microhydros/<device>/status`
+(`online`/`offline`, retained, Last Will).
+
+## Documentation
+
+1. [Project plan (current, Swedish)](docs/projektplan.md) · [original plan](docs/01-project-plan.md)
+2. [Requirements and backlog](docs/02-requirements-backlog.md)
+3. [Architecture](docs/03-architecture.md)
+4. [Sensor decisions](docs/04-sensor-decisions.md)
+5. [Test plan and results](docs/05-test-report.md)
+6. [Sprint log](docs/06-sprint-log.md)
+7. [Handover and recommendations](docs/07-handover.md)
+
+## Status (14 Nov 2026)
+
+Firmware builds for `esp32dev`, `wokwi` and `esp32dev_real`; native and gateway tests pass; the data path
+was verified end to end on a PC (host build → MQTT broker → receiver → SQLite → analysis). Not yet done:
+a run in Wokwi against the public broker and the team's own test runs; see the test report. The repository
+was started by Gayathri (first commit 4 Sep, main upload 23 Oct 2026); the HAL, MQTT and gateway work
+was added in November 2026 during the re-take. Dates are recorded as they happened.
