@@ -120,6 +120,7 @@ hardware. Topics: `microhydros/<device>/measurement` and `microhydros/<device>/s
 5. [Test plan and results](docs/05-test-report.md)
 6. [Sprint log](docs/06-sprint-log.md)
 7. [Handover and recommendations](docs/07-handover.md)
+8. [Demo script for the customer video (Swedish)](docs/08-demomanus.md)
 
 ## Status (14 Nov 2026)
 
