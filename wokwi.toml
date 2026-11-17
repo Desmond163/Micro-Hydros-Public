@@ -1,0 +1,6 @@
+# Wokwi simulator config (VS Code extension "Wokwi Simulator").
+# Build first:  pio run -e wokwi   then: F1 -> "Wokwi: Start Simulator"
+[wokwi]
+version = 1
+firmware = '.pio/build/wokwi/firmware.bin'
+elf = '.pio/build/wokwi/firmware.elf'

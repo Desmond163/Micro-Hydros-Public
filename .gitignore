@@ -1,0 +1,13 @@
+# PlatformIO build output
+.pio/
+.vscode/
+# Local credentials (never commit)
+include/secrets.h
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# Gateway runtime data
+data/
+reports/

@@ -40,11 +40,26 @@ void test_rejects_non_finite_temperature() {
     TEST_ASSERT_FALSE(Validator::isValid(measurement));
 }
 
+void test_mask_identifies_each_faulty_channel() {
+    MeasurementData measurement = validMeasurement();
+    measurement.airOutsideC = -31.0f;
+    measurement.humidityInsidePct = std::numeric_limits<float>::quiet_NaN();
+    TEST_ASSERT_EQUAL_UINT8(kAirOutside | kHumidityInside, Validator::implausibleMask(measurement));
+}
+
+void test_rejects_water_spike() {
+    MeasurementData measurement = validMeasurement();
+    measurement.waterC = 170.0f;
+    TEST_ASSERT_EQUAL_UINT8(kWater, Validator::implausibleMask(measurement));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_accepts_in_range_values);
     RUN_TEST(test_accepts_inclusive_boundaries);
     RUN_TEST(test_rejects_out_of_range_humidity);
     RUN_TEST(test_rejects_non_finite_temperature);
+    RUN_TEST(test_mask_identifies_each_faulty_channel);
+    RUN_TEST(test_rejects_water_spike);
     return UNITY_END();
 }

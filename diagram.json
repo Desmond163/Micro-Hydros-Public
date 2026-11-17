@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "author": "MicroHydros team (Grupp 6)",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-led", "id": "ledAlarm", "top": -60, "left": 180, "attrs": { "color": "red", "label": "ALARM" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": 20, "left": 170, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "ledOnline", "top": -60, "left": 240, "attrs": { "color": "green", "label": "MQTT" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 20, "left": 230, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-pushbutton", "id": "btnHeat", "top": 140, "left": 180, "attrs": { "color": "orange", "label": "Heat event" } },
+    { "type": "wokwi-pushbutton", "id": "btnFault", "top": 210, "left": 180, "attrs": { "color": "blue", "label": "Sensor fault" } }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:25", "r1:1", "red", [] ],
+    [ "r1:2", "ledAlarm:A", "red", [] ],
+    [ "ledAlarm:C", "esp:GND.2", "black", [] ],
+    [ "esp:26", "r2:1", "green", [] ],
+    [ "r2:2", "ledOnline:A", "green", [] ],
+    [ "ledOnline:C", "esp:GND.2", "black", [] ],
+    [ "esp:32", "btnHeat:1.l", "orange", [] ],
+    [ "btnHeat:2.l", "esp:GND.1", "black", [] ],
+    [ "esp:33", "btnFault:1.l", "blue", [] ],
+    [ "btnFault:2.l", "esp:GND.1", "black", [] ]
+  ],
+  "dependencies": {}
+}
