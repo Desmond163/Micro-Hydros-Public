@@ -43,14 +43,14 @@ pio run -e esp32dev -e wokwi -e esp32dev_real -e native_sim
 | T-10 | No false warnings in normal operation | 2000 readings each at 1x, 10x and 120x, no heat event | 0 warnings | 0 / 0 / 0 | Passed |
 | T-11 | MQTT delivery and status | Local Mosquitto; receiver subscribed to `microhydros/+/measurement`; 60 readings (faults at 20) published with QoS 1; retained `online` on status topic; one non-JSON message | 60 stored, status event, non-JSON rejected | 60 stored (57 valid), status `online` logged, 1 rejected ("invalid JSON") | Passed |
 | T-12 | Analysis report and graph | `python -m gateway.analyze` on T-08 data | Statistics per channel, faults, alarms, insights, PNG | Report and graph produced; faults shown as missing values, not 0 | Passed |
+| T-13 | Firmware in Wokwi publishes to public broker | `pio run -e wokwi`, start Wokwi, receiver with `--mqtt-host broker.hivemq.com --device mh-grupp6` | Readings arrive every 5 s | Run 18 Nov 2026 on Desmond's MacBook: 43+ readings stored in SQLite, one every ~10 s wall clock (5 s device time at the simulator's ~51 % speed), `online`/`offline` status events logged, restart detected (seq 5→0). LED state not checked | Passed (LED not verified) |
+| T-14 | Fault button in Wokwi | Press blue button | `faults` lists water/humidity for a few readings; then recovers | Readings 29–31: `faults` = water + humidity_inside, values stored as missing, `valid`=0; from reading 32 `faults`=[] again. Other channels kept reporting. Red LED not checked | Passed (LED not verified) |
+| T-15 | Heat event in Wokwi | Press orange button | Receiver warning before `air_inside_high` | Early warning at 19:08:09 ("+1.98/h, reaches 28.0 in ~20 min"), `air_inside_high` at reading 29 (28.28 °C), air inside plateaus at ~33 °C; second early warning for humidity (−4.30/h). Red LED not checked | Passed (LED not verified) |
 
 ## Open tests (team)
 
 | ID | What | How | Expected | Owner | Status |
 |---|---|---|---|---|---|
-| T-13 | Firmware in Wokwi publishes to public broker | `pio run -e wokwi`, start Wokwi, receiver with `--mqtt-host broker.hivemq.com --device mh-grupp6` | Green LED on, readings arrive every 5 s | Khaled | Not run |
-| T-14 | Fault button in Wokwi | Press blue button | Red LED; `faults` lists water/humidity for a few readings; then recovers | Khaled | Not run |
-| T-15 | Heat event in Wokwi | Press orange button | Receiver warning before `air_inside_high`; red LED on alarm | Khaled | Not run |
 | T-16 | Broker outage | Stop receiver/disconnect network in Wokwi or block broker, then restore | Device buffers up to 20 payloads, sends them after reconnect; gateway reports a gap only if more were lost | Khaled | Not run |
 | T-17 | Long run (stability) | Wokwi or physical ESP32 for ≥ 30 min | No reboot (`seq` keeps increasing), no growing gaps | Khaled | Not run |
 | T-18 | Tests on a second machine | Run `pio test -e native` and `pytest` on Windows | Same results as above | Gayathri, Khaled | Not run |
