@@ -52,6 +52,27 @@ pio test -e native            # 30 firmware unit tests
 python -m pytest gateway      # 19 gateway tests
 ```
 
+### Test overview
+
+```mermaid
+flowchart TD
+    A["Firmware unit tests: validation, alarms and buffering"]
+    B["Gateway tests: validation, storage and trend warnings"]
+    C["Wokwi: simulated readings, sensor faults and heat event"]
+    D["MQTT receiver: readings, warnings and SQLite storage"]
+    E["Controlled disconnection and reconnection scenarios"]
+    F["Test plan and recorded results"]
+    C --> D
+    C --> E
+    A --> F
+    B --> F
+    D --> F
+    E --> F
+```
+
+The Wokwi checks use simulated sensors. The reconnection checks cover controlled scenarios;
+see the [test report](docs/05-test-report.md) for results and T-16 limitations.
+
 ### 2. Run the ESP32 in Wokwi and receive data on your PC
 
 ```bash
