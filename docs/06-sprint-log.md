@@ -5,7 +5,7 @@ Project work began on 2 November 2026, as confirmed by Khaled. The log records p
 | Date | Event |
 |---|---|
 | 2026-11-02 | Project work began |
-| 2026-11-03 | Call between Khaled and Desmond via Google Meet |
+| 2026-11-02 | Meeting with Sebastian at 14:30 via Google Meet |
 | 2026-11-10 | Call between Desmond and Khaled (Discord, ~8 min): simulated sensors, GitHub, Desmond Scrum Master; project plan v1 sent by e-mail |
 | 2026-11-11 | Team call via Discord |
 | 2026-11-11 | Sebastian approves simulation **if there is a HAL** by e-mail; asks for a complete, demonstrable prototype; demo as recorded customer video; deadline 27 Nov |
@@ -22,7 +22,7 @@ Teamet har även löpande skriftlig kommunikation via Discord.
 
 Goal: approved plan, HAL-based firmware, data path to an external system.
 Done: plan v1 and v2, HAL and simulation, MQTT with buffering, gateway with history and warnings,
-44 automated tests (25 firmware, 19 gateway), documentation. The work began on 2 November; the exact sprint boundaries need confirmation.
+documentation. The later Windows rerun verified 49 automated tests (30 firmware, 19 gateway) on 19 November. The work began on 2 November; the exact sprint boundaries need confirmation.
 
 ## Sprint 2: verify and demonstrate
 
